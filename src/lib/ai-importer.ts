@@ -37,19 +37,42 @@ Output strictly valid JSON with the following structure:
   "nodes": [
     { 
       "id": "1", 
-      "type": "task", // Options: 'task' | 'note' | 'milestone' | 'decision' | 'detailed' | 'heading' | 'section'
-      "label": "Brief Title", 
-      "details": "Description or HTML content (required for 'detailed' nodes)", 
-      "date": "YYYY-MM-DD",
+      "type": "heading",
+      "label": "Project Phase 1", 
+      "details": "Major project phase description",
       "status": "todo" 
+    },
+    { 
+      "id": "2", 
+      "type": "task",
+      "label": "Action Item", 
+      "details": "Specific task details", 
+      "date": "2024-05-20",
+      "status": "todo" 
+    },
+    {
+      "id": "3",
+      "type": "decision",
+      "label": "Go / No-Go",
+      "status": "todo"
+    },
+    {
+      "id": "4",
+      "type": "note",
+      "label": "Important Context",
+      "details": "Keep this in mind..."
+    },
+    {
+        "id": "5",
+        "type": "detailed",
+        "label": "Detailed Spec",
+        "details": "<h1>Specifications</h1><p>Full HTML content here...</p>"
     }
   ],
   "connections": [
-    { 
-      "from": "1", 
-      "to": "2", 
-      "label": "optional label" 
-    }
+    { "from": "1", "to": "2", "label": "starts" },
+    { "from": "2", "to": "3" },
+    { "from": "3", "to": "4", "label": "if yes" }
   ]
 }
 
