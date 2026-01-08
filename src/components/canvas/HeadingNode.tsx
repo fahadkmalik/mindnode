@@ -55,8 +55,11 @@ const HeadingNode = ({ id, data, selected }: HeadingNodeProps) => {
 
             {isEditing ? (
                 <input
-                    className="w-full h-full text-3xl font-bold bg-transparent border-none focus:outline-none focus:ring-0 p-0"
-                    style={{ color: data.borderColor || 'inherit' }}
+                    className="w-full h-full font-bold bg-transparent border-none focus:outline-none focus:ring-0 p-0"
+                    style={{
+                        color: data.borderColor || 'inherit',
+                        fontSize: data.fontSize || 30
+                    }}
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     onBlur={handleBlur}
@@ -67,8 +70,11 @@ const HeadingNode = ({ id, data, selected }: HeadingNodeProps) => {
                 />
             ) : (
                 <h1
-                    className="text-3xl font-bold cursor-text w-full break-words"
-                    style={{ color: data.borderColor || 'inherit' }}
+                    className="font-bold cursor-text w-full break-words"
+                    style={{
+                        color: data.borderColor || 'inherit',
+                        fontSize: data.fontSize || 30
+                    }}
                     onDoubleClick={() => setIsEditing(true)}
                 >
                     {text}

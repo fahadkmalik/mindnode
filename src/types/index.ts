@@ -8,7 +8,9 @@ export interface AppNode {
     content: string;
     position: { x: number; y: number };
     width?: number;
+    height?: number;
     borderColor: string;
+    fontSize?: number;
     dateTime?: Date;
     status?: NodeStatus;
     createdAt: Date;

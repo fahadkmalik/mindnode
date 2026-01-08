@@ -202,16 +202,23 @@ const CustomNode = ({ id, data, selected }: CustomNodeProps) => {
                                 if (data.type !== 'detailed') handleKeyDown(e);
                             }}
                             placeholder={data.type === 'detailed' ? "Enter HTML or text here..." : "Enter text..."}
+                            style={{ fontSize: data.fontSize || 14 }}
                             autoFocus
                         />
                     ) : (
                         data.type === 'detailed' ? (
                             <div
                                 className="text-sm prose prose-sm dark:prose-invert max-w-none w-full h-full overflow-y-auto"
+                                style={{ fontSize: data.fontSize || 14 }}
                                 dangerouslySetInnerHTML={{ __html: data.content }}
                             />
                         ) : (
-                            <p className={cn("text-sm whitespace-pre-wrap min-h-[20px]", isTask && data.status === 'complete' && "line-through text-muted-foreground")}>{data.content}</p>
+                            <p
+                                className={cn("text-sm whitespace-pre-wrap min-h-[20px]", isTask && data.status === 'complete' && "line-through text-muted-foreground")}
+                                style={{ fontSize: data.fontSize || 14 }}
+                            >
+                                {data.content}
+                            </p>
                         )
                     )}
                 </CardContent>

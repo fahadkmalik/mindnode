@@ -61,7 +61,8 @@ const SectionNode = ({ id, data, selected }: SectionNodeProps) => {
 
             <div className="absolute -top-8 left-0">
                 <input
-                    className="bg-transparent font-semibold text-muted-foreground focus:text-foreground focus:outline-none text-lg"
+                    className="bg-transparent font-semibold text-muted-foreground focus:text-foreground focus:outline-none"
+                    style={{ fontSize: data.fontSize || 18 }}
                     value={label}
                     onChange={(e) => setLabel(e.target.value)}
                     onBlur={handleBlur}

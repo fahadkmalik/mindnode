@@ -11,7 +11,7 @@ import {
     applyNodeChanges,
     applyEdgeChanges,
     ReactFlowProvider,
-    useReactFlow,
+    // useReactFlow, // Removed unused
     type Connection,
     type EdgeChange,
     type NodeChange,
@@ -20,7 +20,7 @@ import {
     SelectionMode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { ArrowLeft, Save, Share2, Users } from 'lucide-react';
+import { ArrowLeft, Share2, Users, CheckCircle2, Loader2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useBoardStore } from '@/store/useBoardStore';
@@ -42,6 +42,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+// Removed unused DropdownMenu imports
+
 import CustomNode from './CustomNode';
 import CustomEdge from './CustomEdge';
 import { NodeSidebar } from './NodeSidebar';
@@ -52,7 +54,7 @@ import { AnalyticsPanel } from './AnalyticsPanel';
 import { PasswordPrompt } from './PasswordPrompt';
 import HeadingNode from './HeadingNode';
 import SectionNode from './SectionNode';
-import type { AppNode } from '@/types';
+import type { AppNode, NodeType } from '@/types';
 
 const nodeTypes = {
     task: CustomNode,
@@ -72,11 +74,18 @@ function BoardCanvas() {
     const { boardId } = useParams();
     const { boards, updateBoard } = useBoardStore();
     const wrapperRef = useRef<HTMLDivElement>(null);
-    const { screenToFlowPosition } = useReactFlow();
+    // const { screenToFlowPosition } = useReactFlow(); // Removed unused
+
+    // Saving State
+    const [isSaving, setIsSaving] = useState(false);
+    const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
     // Sharing State
     const [isShareOpen, setIsShareOpen] = useState(false);
     const [sharePassword, setSharePassword] = useState("");
+
+    // Edge Interaction State
+    const [edgeMenu, setEdgeMenu] = useState<{ id: string, x: number, y: number } | null>(null);
 
     // Find board from store
     const board = boards.find(b => b.id === boardId);
@@ -87,13 +96,11 @@ function BoardCanvas() {
     // Effect to check password requirement
     useEffect(() => {
         if (board) {
-            // If no password, unlocked. If password, locked initially.
             setIsUnlocked(!board.password);
             setSharePassword(board.password || "");
         }
     }, [boardId, board?.password]);
 
-    // Initialize with explicit types to avoid 'never[]' inference
     const [nodes, setNodes] = useNodesState<Node>([]);
     const [edges, setEdges] = useEdgesState<Edge>([]);
 
@@ -105,7 +112,7 @@ function BoardCanvas() {
                 type: n.type,
                 position: n.position,
                 data: n as unknown as Record<string, unknown>,
-                style: n.type === 'detailed' ? { width: 400, height: 300 } : undefined // Ensure style persists
+                style: n.type === 'detailed' ? { width: 400, height: 300 } : undefined
             }));
             setNodes(initialNodes);
 
@@ -122,6 +129,44 @@ function BoardCanvas() {
         }
     }, [boardId]);
 
+    // Auto-save debouncer
+    useEffect(() => {
+        if (!boardId || nodes.length === 0) return;
+
+        const saveTimeout = setTimeout(() => {
+            setIsSaving(true);
+            const appNodes = nodes.map(n => ({
+                ...(n.data as unknown as AppNode),
+                id: n.id,
+                position: n.position,
+                borderColor: (n.data as unknown as AppNode).borderColor || '#000000',
+                fontSize: (n.data as unknown as AppNode).fontSize
+            })) as AppNode[];
+
+            const appEdges = edges.map(e => ({
+                id: e.id,
+                source: e.source,
+                target: e.target,
+                sourceHandle: e.sourceHandle || 'top',
+                targetHandle: e.targetHandle || 'top',
+                style: e.data?.style || 'bezier'
+            })) as any[];
+
+            updateBoard(boardId, {
+                nodes: appNodes,
+                connections: appEdges
+            });
+
+            setTimeout(() => {
+                setIsSaving(false);
+                setLastSaved(new Date());
+            }, 500);
+        }, 2000); // Auto-save after 2 seconds of inactivity
+
+        return () => clearTimeout(saveTimeout);
+    }, [nodes, edges, boardId, updateBoard]);
+
+
     const onNodesChange = useCallback(
         (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
         [setNodes],
@@ -137,48 +182,58 @@ function BoardCanvas() {
         [setEdges],
     );
 
-    const onDragOver = useCallback((event: React.DragEvent) => {
+    const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
         event.preventDefault();
-        event.dataTransfer.dropEffect = 'move';
+        setEdgeMenu({
+            id: edge.id,
+            x: event.clientX,
+            y: event.clientY,
+        });
     }, []);
 
-    const onDrop = useCallback(
-        (event: React.DragEvent) => {
-            event.preventDefault();
+    const handleInsertNodeOnEdge = (type: NodeType) => {
+        if (!edgeMenu) return;
 
-            const type = event.dataTransfer.getData('application/reactflow');
-            if (typeof type === 'undefined' || !type) {
-                return;
-            }
+        const edge = edges.find(e => e.id === edgeMenu.id);
+        if (!edge) return;
 
-            const position = screenToFlowPosition({
-                x: event.clientX,
-                y: event.clientY,
-            });
+        const sourceNode = nodes.find(n => n.id === edge.source);
+        const targetNode = nodes.find(n => n.id === edge.target);
 
-            const newNodeId = uuidv4();
-            const newNodeApp: AppNode = {
-                id: newNodeId,
-                type: type as any,
-                content: `New ${type}`,
-                position: position,
-                borderColor: '#000000',
-                createdAt: new Date(),
-                updatedAt: new Date()
-            };
+        if (!sourceNode || !targetNode) return;
 
-            const newNode: Node = {
-                id: newNodeId,
-                type,
-                position,
-                data: newNodeApp as unknown as Record<string, unknown>,
-                style: (type === 'detailed' || type === 'section') ? { width: type === 'section' ? 200 : 400, height: type === 'section' ? 200 : 300 } : undefined,
-            };
+        // Calculate midpoint
+        const midX = (sourceNode.position.x + targetNode.position.x) / 2;
+        const midY = (sourceNode.position.y + targetNode.position.y) / 2;
 
-            setNodes((nds) => nds.concat(newNode));
-        },
-        [screenToFlowPosition, setNodes],
-    );
+        const newNodeId = uuidv4();
+        const newNodeApp: AppNode = {
+            id: newNodeId,
+            type: type,
+            content: `New ${type}`,
+            position: { x: midX, y: midY },
+            borderColor: '#000000',
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+
+        const newNode: Node = {
+            id: newNodeId,
+            type,
+            position: { x: midX, y: midY },
+            data: newNodeApp as unknown as Record<string, unknown>,
+        };
+
+        // Create new edges
+        const newEdge1 = { id: uuidv4(), source: edge.source, target: newNodeId, type: 'default' };
+        const newEdge2 = { id: uuidv4(), source: newNodeId, target: edge.target, type: 'default' };
+
+        // Update state: remove old edge, add new node, add new edges
+        setEdges(eds => eds.filter(e => e.id !== edge.id).concat([newEdge1, newEdge2]));
+        setNodes(nds => nds.concat(newNode));
+
+        setEdgeMenu(null);
+    };
 
     const updateSelectedNodeColor = (color: string) => {
         setNodes((nds) =>
@@ -198,29 +253,6 @@ function BoardCanvas() {
         );
     };
 
-    const handleSave = () => {
-        if (!boardId) return;
-        const appNodes = nodes.map(n => ({
-            ...(n.data as unknown as AppNode),
-            id: n.id,
-            position: n.position,
-        })) as AppNode[];
-
-        const appEdges = edges.map(e => ({
-            id: e.id,
-            source: e.source,
-            target: e.target,
-            sourceHandle: e.sourceHandle || 'top',
-            targetHandle: e.targetHandle || 'top',
-            style: e.data?.style || 'bezier'
-        })) as any[];
-
-        updateBoard(boardId, {
-            nodes: appNodes,
-            connections: appEdges
-        });
-    };
-
     const handleUpdateSecurity = () => {
         if (!boardId) return;
         updateBoard(boardId, {
@@ -236,7 +268,7 @@ function BoardCanvas() {
     }
 
     return (
-        <div className="h-screen w-screen flex flex-col">
+        <div className="h-screen w-screen flex flex-col" onClick={() => setEdgeMenu(null)}>
             <header className="h-14 border-b flex items-center justify-between px-4 bg-background z-10 shrink-0">
                 <div className="flex items-center gap-4">
                     <Link to="/">
@@ -244,7 +276,20 @@ function BoardCanvas() {
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
                     </Link>
-                    <span className="font-semibold">{board.name}</span>
+                    <div className="flex flex-col">
+                        <span className="font-semibold text-sm">{board.name}</span>
+                        <div className="flex items-center gap-1">
+                            {isSaving ? (
+                                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                    <Loader2 className="h-3 w-3 animate-spin" /> Saving...
+                                </span>
+                            ) : lastSaved ? (
+                                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                    <CheckCircle2 className="h-3 w-3 text-green-500" /> Saved {lastSaved.toLocaleTimeString()}
+                                </span>
+                            ) : null}
+                        </div>
+                    </div>
                     <ColorPicker boardId={boardId || ''} onSelect={updateSelectedNodeColor} />
                 </div>
                 <div className="flex items-center gap-2">
@@ -291,11 +336,6 @@ function BoardCanvas() {
                             <Button onClick={handleUpdateSecurity}>Save Changes</Button>
                         </DialogContent>
                     </Dialog>
-
-                    <Button size="sm" onClick={handleSave}>
-                        <Save className="h-4 w-4 mr-2" />
-                        Save Board
-                    </Button>
                 </div>
             </header>
             <div className="flex-1 flex overflow-hidden relative">
@@ -308,8 +348,7 @@ function BoardCanvas() {
                         onNodesChange={onNodesChange}
                         onEdgesChange={onEdgesChange}
                         onConnect={onConnect}
-                        onDragOver={onDragOver}
-                        onDrop={onDrop}
+                        onEdgeClick={onEdgeClick}
                         nodeTypes={nodeTypes}
                         edgeTypes={edgeTypes}
                         defaultEdgeOptions={{ type: 'default', animated: false }}
@@ -326,6 +365,25 @@ function BoardCanvas() {
                         <CanvasToolbar />
                         <AnalyticsPanel boardId={boardId || ''} />
                     </ReactFlow>
+
+                    {/* Context Menu for Edges */}
+                    {edgeMenu && (
+                        <div
+                            className="fixed z-50 bg-background border rounded-md shadow-md p-1 min-w-[150px]"
+                            style={{ top: edgeMenu.y, left: edgeMenu.x }}
+                        >
+                            <div className="text-xs font-semibold px-2 py-1 text-muted-foreground">Insert Node</div>
+                            <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={() => handleInsertNodeOnEdge('task')}>
+                                Task
+                            </Button>
+                            <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={() => handleInsertNodeOnEdge('decision')}>
+                                Decision
+                            </Button>
+                            <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={() => handleInsertNodeOnEdge('note')}>
+                                Note
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
