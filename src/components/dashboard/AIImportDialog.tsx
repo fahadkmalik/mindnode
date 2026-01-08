@@ -33,7 +33,14 @@ export function AIImportDialog() {
     const handleImport = () => {
         try {
             setError(null);
-            const { boardName, nodes, connections } = parseAndLayoutPlan(jsonInput);
+            // Sanitize input: Remove markdown code blocks if present
+            const sanitizedInput = jsonInput
+                .replace(/^```json\s*/, "") // Remove starting ```json
+                .replace(/^```\s*/, "")     // Remove starting ```
+                .replace(/\s*```$/, "")     // Remove ending ```
+                .trim();
+
+            const { boardName, nodes, connections } = parseAndLayoutPlan(sanitizedInput);
 
             // Create and Hydrate Board
             const boardId = createBoard(boardName, "Imported from AI Plan");
