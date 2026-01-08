@@ -11,7 +11,7 @@ import {
     applyNodeChanges,
     applyEdgeChanges,
     ReactFlowProvider,
-    // useReactFlow, // Removed unused
+    useReactFlow,
     type Connection,
     type EdgeChange,
     type NodeChange,
@@ -74,7 +74,7 @@ function BoardCanvas() {
     const { boardId } = useParams();
     const { boards, updateBoard } = useBoardStore();
     const wrapperRef = useRef<HTMLDivElement>(null);
-    // const { screenToFlowPosition } = useReactFlow(); // Removed unused
+    const { screenToFlowPosition } = useReactFlow();
 
     // Saving State
     const [isSaving, setIsSaving] = useState(false);
@@ -180,6 +180,50 @@ function BoardCanvas() {
     const onConnect = useCallback(
         (params: Connection) => setEdges((eds) => addEdge({ ...params, type: 'default' }, eds)),
         [setEdges],
+    );
+
+    const onDragOver = useCallback((event: React.DragEvent) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+    }, []);
+
+    const onDrop = useCallback(
+        (event: React.DragEvent) => {
+            event.preventDefault();
+
+            const type = event.dataTransfer.getData('application/reactflow');
+            if (typeof type === 'undefined' || !type) {
+                return;
+            }
+
+            const position = screenToFlowPosition({
+                x: event.clientX,
+                y: event.clientY,
+            });
+
+            const newNodeId = uuidv4();
+            const newNodeApp: AppNode = {
+                id: newNodeId,
+                type: type as any,
+                content: `New ${type}`,
+                position: position,
+                borderColor: '#000000',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                fontSize: type === 'heading' ? 30 : 14
+            };
+
+            const newNode: Node = {
+                id: newNodeId,
+                type,
+                position,
+                data: newNodeApp as unknown as Record<string, unknown>,
+                style: (type === 'detailed' || type === 'section') ? { width: type === 'section' ? 200 : 400, height: type === 'section' ? 200 : 300 } : undefined,
+            };
+
+            setNodes((nds) => nds.concat(newNode));
+        },
+        [screenToFlowPosition, setNodes],
     );
 
     const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
@@ -349,6 +393,8 @@ function BoardCanvas() {
                         onEdgesChange={onEdgesChange}
                         onConnect={onConnect}
                         onEdgeClick={onEdgeClick}
+                        onDragOver={onDragOver}
+                        onDrop={onDrop}
                         nodeTypes={nodeTypes}
                         edgeTypes={edgeTypes}
                         defaultEdgeOptions={{ type: 'default', animated: false }}
