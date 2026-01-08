@@ -38,18 +38,31 @@ Output strictly valid JSON with the following structure:
     { 
       "id": "1", 
       "type": "task", // Options: 'task' | 'note' | 'milestone' | 'decision' | 'detailed' | 'heading' | 'section'
-      "label": "Task Name", 
-      "details": "Description or HTML content", 
+      "label": "Brief Title", 
+      "details": "Description or HTML content (required for 'detailed' nodes)", 
       "date": "YYYY-MM-DD",
       "status": "todo" 
     }
   ],
   "connections": [
-    { "from": "1", "to": "2", "label": "optional label" }
+    { 
+      "from": "1", 
+      "to": "2", 
+      "label": "optional label" 
+    }
   ]
 }
 
-Ensure logical flow. Use 'detailed' type for nodes needing long descriptions. Use 'milestone' for key dates.
+Types Guide:
+- 'heading': Large text for zones/phases.
+- 'section': A container-like visual grouping.
+- 'detailed': A large card with rich HTML content.
+- 'task': Standard actionable item.
+- 'decision': Diamond shape for choices.
+- 'milestone': Rounded shape for key dates.
+- 'note': Yellow sticky note.
+
+Ensure logical flow. Connect phases to their tasks. Use 'detailed' type for nodes needing long descriptions.
 `;
 
 // --- IMPORT LOGIC ---
@@ -142,7 +155,7 @@ export const parseAndLayoutPlan = (jsonString: string): {
             id: uuidv4(),
             source,
             target,
-            sourceHandle: 'bottom', // Default for TB layout
+            sourceHandle: 'bottom-source', // Default for TB layout (`bottom` doesn't exist on CustomNode anymore, we named it `bottom-source`)
             targetHandle: 'top',    // Default for TB layout
             label: c.label,
             style: 'bezier'

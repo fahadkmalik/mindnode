@@ -50,8 +50,9 @@ const HeadingNode = ({ id, data, selected }: HeadingNodeProps) => {
                 handleStyle={{ width: 8, height: 8, borderRadius: 4 }}
             />
             {/* Minimal handles for connecting if needed */}
-            <Handle type="target" position={Position.Top} className="opacity-0 group-hover:opacity-50" />
-            <Handle type="source" position={Position.Bottom} className="opacity-0 group-hover:opacity-50" />
+            {/* Minimal handles for connecting if needed */}
+            <Handle type="target" position={Position.Top} id="top" className="opacity-0 group-hover:opacity-50" />
+            <Handle type="source" position={Position.Bottom} id="bottom-source" className="opacity-0 group-hover:opacity-50" />
 
             {isEditing ? (
                 <input

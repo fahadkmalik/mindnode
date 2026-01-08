@@ -1,5 +1,5 @@
 import { memo, useState, useCallback, useEffect } from 'react';
-import { NodeResizer, useReactFlow } from '@xyflow/react';
+import { NodeResizer, useReactFlow, Handle, Position } from '@xyflow/react';
 import type { NodeProps } from '@xyflow/react';
 import { cn } from "@/lib/utils";
 import type { AppNode } from '@/types';
@@ -73,6 +73,12 @@ const SectionNode = ({ id, data, selected }: SectionNodeProps) => {
                     }}
                 />
             </div>
+
+            {/* Handles for connections */}
+            <Handle type="target" position={Position.Top} id="top" className="opacity-0 w-2 h-2" />
+            <Handle type="source" position={Position.Bottom} id="bottom-source" className="opacity-0 w-2 h-2" />
+            <Handle type="target" position={Position.Left} id="left" className="opacity-0 w-2 h-2" />
+            <Handle type="source" position={Position.Right} id="right-source" className="opacity-0 w-2 h-2" />
 
             {/* The container itself is the visual content */}
         </div>
