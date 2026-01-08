@@ -10,6 +10,7 @@ import { Plus, Search, Trash2, Star, Calendar } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { MobileNav } from "@/components/ui/mobile-nav";
+import { AIImportDialog } from "./AIImportDialog";
 
 export function Dashboard() {
     const { boards, createBoard, deleteBoard, toggleStarBoard } = useBoardStore();
@@ -67,6 +68,7 @@ export function Dashboard() {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
+                    <AIImportDialog />
                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                         <DialogTrigger asChild>
                             <Button>
