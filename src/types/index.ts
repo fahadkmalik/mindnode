@@ -15,6 +15,7 @@ export interface AppNode {
     status?: NodeStatus;
     createdAt: Date;
     updatedAt: Date;
+    onHandleClick?: (nodeId: string, handleId: string, position: { x: number, y: number }) => void;
 }
 
 export interface AppConnection {

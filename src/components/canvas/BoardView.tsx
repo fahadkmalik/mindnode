@@ -42,7 +42,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-// Removed unused DropdownMenu imports
 
 import CustomNode from './CustomNode';
 import CustomEdge from './CustomEdge';
@@ -84,8 +83,9 @@ function BoardCanvas() {
     const [isShareOpen, setIsShareOpen] = useState(false);
     const [sharePassword, setSharePassword] = useState("");
 
-    // Edge Interaction State
+    // Context Menus
     const [edgeMenu, setEdgeMenu] = useState<{ id: string, x: number, y: number } | null>(null);
+    const [handleMenu, setHandleMenu] = useState<{ nodeId: string, handleId: string, x: number, y: number } | null>(null);
 
     // Find board from store
     const board = boards.find(b => b.id === boardId);
@@ -104,6 +104,68 @@ function BoardCanvas() {
     const [nodes, setNodes] = useNodesState<Node>([]);
     const [edges, setEdges] = useEdgesState<Edge>([]);
 
+    const onHandleClick = useCallback((nodeId: string, handleId: string, position: { x: number, y: number }) => {
+        setHandleMenu({ nodeId, handleId, x: position.x, y: position.y });
+    }, []);
+
+    const handleInsertNodeFromHandle = (type: NodeType) => {
+        if (!handleMenu) return;
+
+        const sourceNode = nodes.find(n => n.id === handleMenu.nodeId);
+        if (!sourceNode) return;
+
+        // Calculate new position based on handle direction
+        let x = sourceNode.position.x;
+        let y = sourceNode.position.y;
+        const offset = 250;
+
+        if (handleMenu.handleId === 'top') y -= offset;
+        if (handleMenu.handleId === 'bottom') y += offset;
+        if (handleMenu.handleId === 'left') x -= offset;
+        if (handleMenu.handleId === 'right') x += offset;
+
+        const newNodeId = uuidv4();
+        const newNodeApp: AppNode = {
+            id: newNodeId,
+            type: type,
+            content: `New ${type}`,
+            position: { x, y },
+            borderColor: '#000000',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            fontSize: type === 'heading' ? 30 : 14,
+            onHandleClick // Pass callback to new node
+        };
+
+        const newNode: Node = {
+            id: newNodeId,
+            type,
+            position: { x, y },
+            data: newNodeApp as unknown as Record<string, unknown>,
+        };
+
+        const newEdge = {
+            id: uuidv4(),
+            source: handleMenu.nodeId,
+            target: newNodeId,
+            sourceHandle: `${handleMenu.handleId}-source`, // Use source handle ID
+            targetHandle: getOppositeHandle(handleMenu.handleId),
+            type: 'default'
+        };
+
+        setNodes(nds => nds.concat(newNode));
+        setEdges(eds => eds.concat(newEdge));
+        setHandleMenu(null);
+    };
+
+    const getOppositeHandle = (handleId: string) => {
+        if (handleId === 'top') return 'bottom';
+        if (handleId === 'bottom') return 'top';
+        if (handleId === 'left') return 'right';
+        if (handleId === 'right') return 'left';
+        return 'top';
+    };
+
     // Sync from store
     useEffect(() => {
         if (board) {
@@ -111,7 +173,7 @@ function BoardCanvas() {
                 id: n.id,
                 type: n.type,
                 position: n.position,
-                data: n as unknown as Record<string, unknown>,
+                data: { ...n, onHandleClick } as unknown as Record<string, unknown>,
                 style: n.type === 'detailed' ? { width: 400, height: 300 } : undefined
             }));
             setNodes(initialNodes);
@@ -127,7 +189,7 @@ function BoardCanvas() {
             }));
             setEdges(initialEdges);
         }
-    }, [boardId]);
+    }, [boardId]); // Warning: onHandleClick dependency might re-trigger. Ideally empty or stable.
 
     // Auto-save debouncer
     useEffect(() => {
@@ -135,13 +197,16 @@ function BoardCanvas() {
 
         const saveTimeout = setTimeout(() => {
             setIsSaving(true);
-            const appNodes = nodes.map(n => ({
-                ...(n.data as unknown as AppNode),
-                id: n.id,
-                position: n.position,
-                borderColor: (n.data as unknown as AppNode).borderColor || '#000000',
-                fontSize: (n.data as unknown as AppNode).fontSize
-            })) as AppNode[];
+            const appNodes = nodes.map(n => {
+                const { onHandleClick, ...data } = n.data as unknown as AppNode; // Exclude function
+                return {
+                    ...data,
+                    id: n.id,
+                    position: n.position,
+                    borderColor: (n.data as unknown as AppNode).borderColor || '#000000',
+                    fontSize: (n.data as unknown as AppNode).fontSize
+                };
+            }) as AppNode[];
 
             const appEdges = edges.map(e => ({
                 id: e.id,
@@ -161,7 +226,7 @@ function BoardCanvas() {
                 setIsSaving(false);
                 setLastSaved(new Date());
             }, 500);
-        }, 2000); // Auto-save after 2 seconds of inactivity
+        }, 2000);
 
         return () => clearTimeout(saveTimeout);
     }, [nodes, edges, boardId, updateBoard]);
@@ -210,7 +275,8 @@ function BoardCanvas() {
                 borderColor: '#000000',
                 createdAt: new Date(),
                 updatedAt: new Date(),
-                fontSize: type === 'heading' ? 30 : 14
+                fontSize: type === 'heading' ? 30 : 14,
+                onHandleClick // Inject handler
             };
 
             const newNode: Node = {
@@ -223,7 +289,7 @@ function BoardCanvas() {
 
             setNodes((nds) => nds.concat(newNode));
         },
-        [screenToFlowPosition, setNodes],
+        [screenToFlowPosition, setNodes, onHandleClick],
     );
 
     const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
@@ -258,7 +324,8 @@ function BoardCanvas() {
             position: { x: midX, y: midY },
             borderColor: '#000000',
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
+            onHandleClick // Inject handler
         };
 
         const newNode: Node = {
@@ -305,6 +372,11 @@ function BoardCanvas() {
         setIsShareOpen(false);
     };
 
+    const closeMenus = () => {
+        setEdgeMenu(null);
+        setHandleMenu(null);
+    };
+
     if (!board) return <div>Board not found</div>;
 
     if (!isUnlocked) {
@@ -312,7 +384,7 @@ function BoardCanvas() {
     }
 
     return (
-        <div className="h-screen w-screen flex flex-col" onClick={() => setEdgeMenu(null)}>
+        <div className="h-screen w-screen flex flex-col" onClick={closeMenus}>
             <header className="h-14 border-b flex items-center justify-between px-4 bg-background z-10 shrink-0">
                 <div className="flex items-center gap-4">
                     <Link to="/">
@@ -404,11 +476,12 @@ function BoardCanvas() {
                         panOnScroll
                         selectionOnDrag
                         selectionMode={SelectionMode.Partial}
+                        connectionRadius={50} // Enhanced radius for snapping
                     >
                         <Background color="#ccc" gap={20} />
                         <Controls className="hidden" />
                         <MiniMap />
-                        <CanvasToolbar />
+                        <CanvasToolbar onHandleClick={onHandleClick} />
                         <AnalyticsPanel boardId={boardId || ''} />
                     </ReactFlow>
 
@@ -427,6 +500,28 @@ function BoardCanvas() {
                             </Button>
                             <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={() => handleInsertNodeOnEdge('note')}>
                                 Note
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Context Menu for Handles (Adding new node) */}
+                    {handleMenu && (
+                        <div
+                            className="fixed z-50 bg-background border rounded-md shadow-md p-1 min-w-[150px]"
+                            style={{ top: handleMenu.y, left: handleMenu.x }}
+                        >
+                            <div className="text-xs font-semibold px-2 py-1 text-muted-foreground">Add Connected Node</div>
+                            <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={() => handleInsertNodeFromHandle('task')}>
+                                Task
+                            </Button>
+                            <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={() => handleInsertNodeFromHandle('decision')}>
+                                Decision
+                            </Button>
+                            <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={() => handleInsertNodeFromHandle('note')}>
+                                Note
+                            </Button>
+                            <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={() => handleInsertNodeFromHandle('detailed')}>
+                                Detailed
                             </Button>
                         </div>
                     )}

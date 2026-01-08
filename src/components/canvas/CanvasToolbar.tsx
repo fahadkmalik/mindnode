@@ -40,7 +40,7 @@ const NODE_OPTIONS: { type: NodeType; label: string; icon: any }[] = [
     { type: 'decision', label: 'Decision', icon: GitBranch },
 ];
 
-export function CanvasToolbar() {
+export function CanvasToolbar({ onHandleClick }: { onHandleClick?: (nodeId: string, handleId: string, position: { x: number, y: number }) => void }) {
     const { zoomIn, zoomOut, fitView, screenToFlowPosition, setNodes, getNodes, getEdges, setEdges } = useReactFlow();
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [fontSize, setFontSize] = useState<number>(14);
@@ -120,7 +120,8 @@ export function CanvasToolbar() {
             borderColor: '#000000',
             createdAt: new Date(),
             updatedAt: new Date(),
-            fontSize: type === 'heading' ? 30 : 14
+            fontSize: type === 'heading' ? 30 : 14,
+            onHandleClick // Inject handler
         };
 
         const newNode = {

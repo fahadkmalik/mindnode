@@ -91,58 +91,85 @@ const CustomNode = ({ id, data, selected }: CustomNodeProps) => {
                 />
             )}
 
-            {/* 4-Directional Handles - Positioned slightly outside */}
+            {/* Top Handle - Full Width */}
             <Handle
                 type="target"
                 position={Position.Top}
                 id="top"
-                className="w-4 h-4 -top-2 bg-primary border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity z-50 hover:w-6 hover:h-6 hover:-top-3 transition-all duration-200"
+                className="w-full h-3 -top-1.5 bg-transparent border-none rounded-none z-50 transition-all"
             />
             <Handle
                 type="source"
                 position={Position.Top}
                 id="top-source"
-                className="w-4 h-4 -top-2 bg-primary border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity z-50 hover:w-6 hover:h-6 hover:-top-3 transition-all duration-200"
-            />
+                className="w-full h-3 -top-1.5 bg-transparent border-none rounded-none z-50 transition-all cursor-pointer"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    data.onHandleClick?.(id, 'top', { x: e.clientX, y: e.clientY });
+                }}
+            >
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-primary rounded-full border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity" />
+            </Handle>
 
+            {/* Right Handle - Full Height */}
             <Handle
                 type="target"
                 position={Position.Right}
                 id="right"
-                className="w-4 h-4 -right-2 bg-primary border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity z-50 hover:w-6 hover:h-6 hover:-right-3 transition-all duration-200"
+                className="w-3 h-full -right-1.5 bg-transparent border-none rounded-none z-50 transition-all"
             />
             <Handle
                 type="source"
                 position={Position.Right}
                 id="right-source"
-                className="w-4 h-4 -right-2 bg-primary border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity z-50 hover:w-6 hover:h-6 hover:-right-3 transition-all duration-200"
-            />
+                className="w-3 h-full -right-1.5 bg-transparent border-none rounded-none z-50 transition-all cursor-pointer"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    data.onHandleClick?.(id, 'right', { x: e.clientX, y: e.clientY });
+                }}
+            >
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-primary rounded-full border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity" />
+            </Handle>
 
+            {/* Bottom Handle - Full Width */}
             <Handle
                 type="target"
                 position={Position.Bottom}
                 id="bottom"
-                className="w-4 h-4 -bottom-2 bg-primary border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity z-50 hover:w-6 hover:h-6 hover:-bottom-3 transition-all duration-200"
+                className="w-full h-3 -bottom-1.5 bg-transparent border-none rounded-none z-50 transition-all"
             />
             <Handle
                 type="source"
                 position={Position.Bottom}
                 id="bottom-source"
-                className="w-4 h-4 -bottom-2 bg-primary border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity z-50 hover:w-6 hover:h-6 hover:-bottom-3 transition-all duration-200"
-            />
+                className="w-full h-3 -bottom-1.5 bg-transparent border-none rounded-none z-50 transition-all cursor-pointer"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    data.onHandleClick?.(id, 'bottom', { x: e.clientX, y: e.clientY });
+                }}
+            >
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-primary rounded-full border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity" />
+            </Handle>
 
+            {/* Left Handle - Full Height */}
             <Handle
                 type="target"
                 position={Position.Left}
                 id="left"
-                className="w-4 h-4 -left-2 bg-primary border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity z-50 hover:w-6 hover:h-6 hover:-left-3 transition-all duration-200"
+                className="w-3 h-full -left-1.5 bg-transparent border-none rounded-none z-50 transition-all"
             />
             <Handle
                 type="source"
                 position={Position.Left}
                 id="left-source"
-                className="w-4 h-4 -left-2 bg-primary border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity z-50 hover:w-6 hover:h-6 hover:-left-3 transition-all duration-200"
-            />
+                className="w-3 h-full -left-1.5 bg-transparent border-none rounded-none z-50 transition-all cursor-pointer"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    data.onHandleClick?.(id, 'left', { x: e.clientX, y: e.clientY });
+                }}
+            >
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-primary rounded-full border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity" />
+            </Handle>
 
             <Card
                 className={cn(
